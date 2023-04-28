@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from ase import Atoms
-from torch_geometric.data import Data, Dataset
+from torch_geometric.data import Data
 
 
 class GraphKeys:
@@ -14,17 +14,6 @@ class GraphKeys:
 
     Edge_idx = "edge_index"  # (2, E) shape
     Edge_shift = "edge_shift"  # (E, 3) shape
-
-
-class GraphDataset(Dataset):
-    def __init__(self, data_list: list[Data]):
-        self._data_list = data_list
-
-    def get(self, idx: int) -> Data:
-        return self._data_list[idx]
-
-    def len(self):
-        return len(self._data_list)
 
 
 def graphdata2atoms(self, data: Data) -> Atoms:
