@@ -12,7 +12,8 @@ import tensorflow as tf
 import wandb
 from wandb.keras import WandbMetricsLogger, WandbCallback
 
-from .utils import json2args, graphdata2atoms, GraphKeys
+from .common.utils import json2args
+from .common.data import graphdata2atoms, GraphKeys, GraphDataset
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -42,7 +43,7 @@ def main(args: argparse.Namespace):
     # ---------- load dataset ----------
     logger.info("Loading dataset...")
     with open(args.dataset, "rb") as f:
-        dataset = pickle.load(f)
+        dataset: GraphDataset = pickle.load(f)
     max_z = 0
     for d in dataset:
         max_z = max(max_z, max(d[GraphKeys.Z]))
