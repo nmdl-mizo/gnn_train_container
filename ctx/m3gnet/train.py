@@ -8,11 +8,13 @@ import pickle
 from m3gnet.models import M3GNet
 from m3gnet.trainers import Trainer
 import numpy as np
+from ase import Atoms
+from pymatgen.core import Structure
 import tensorflow as tf
 import wandb
 from wandb.keras import WandbMetricsLogger, WandbCallback
 
-from .utils import json2args
+from .utils import json2args, graphdata2atoms, GraphKeys
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -45,17 +47,37 @@ def main(args: argparse.Namespace):
         dataset = pickle.load(f)
     max_z = 0
     for d in dataset:
-        max_z = max(max_z, max(d.z))
+        max_z = max(max_z, max(d[GraphKeys["Z"]]))
+
+    # split dataset
     with open(args.idx_file, "rb") as f:
         idx = pickle.load(f)
-    d_tr = dataset[idx["train"]]
-    d_val = dataset[idx["val"]]
+    tr_struct: list[Atoms] = []
+    tr_target: list[float] = []
+    tr_key: list[str] = []
+    for i in idx["train"]:
+        tr_struct.append(graphdata2atoms(dataset[i]))
+        tr_target.append(dataset[i][property_name])
+        tr_key.append(dataset[i]["key"])
+    val_struct: list[Atoms] = []
+    val_target: list[float] = []
+    val_key: list[str] = []
+    for i in idx["val"]:
+        val_struct.append(graphdata2atoms(dataset[i]))
+        val_target.append(dataset[i][property_name])
+        val_key.append(dataset[i]["key"])
     if idx.get("test") is not None:
-        d_test = dataset[idx["test"]]
+        test_struct = []
+        test_target: list[float] = []
+        test_key: list[str] = []
+        for i in idx["test"]:
+            test_struct.append(graphdata2atoms(dataset[i]))
+            test_target.append(dataset[i][property_name])
+            test_key.append(dataset[i]["key"])
     else:
-        d_test = None
+        test_struct = None
     logger.info(f"max_z: {max_z}")
-    logger.info(f"train: {d_tr}, val: {d_val}, test:{d_test}")
+    logger.info(f"train: {tr_struct}, val: {val_struct}, test:{test_struct}")
 
     # ---------- setup model ----------
     logger.info("Setting up model...")
@@ -77,10 +99,10 @@ def main(args: argparse.Namespace):
     # ---------- training ----------
     logger.info("Start training...")
     trainer.train(
-        graphs_or_structures=d_tr[0],
-        targets=d_tr[1],
-        validation_graphs_or_structures=d_val[0],
-        validation_targets=d_val[1],
+        graphs_or_structures=tr_struct,
+        targets=tr_target,
+        validation_graphs_or_structures=val_struct,
+        validation_targets=val_target,
         loss=tf.keras.losses.MeanSquaredError(),
         batch_size=args.batch_size,
         epochs=args.epochs,
@@ -111,32 +133,32 @@ def main(args: argparse.Namespace):
     # ---------- predict ----------
     logger.info("Train dataset predicting...")
     y_tr: dict[str, dict[str, float]] = {}
-    for i in range(len(d_tr[0])):
-        x = trainer.model.graph_converter(d_tr[0][i])
+    for i in range(len(tr_struct)):
+        x = trainer.model.graph_converter(tr_struct[i])
         y_pred = trainer.model(x.as_tf().as_list()).numpy()[0][0]
-        y_true = d_tr[1][i]
-        y_tr[d_tr[2][i]] = {"y_pred": y_pred, "y_true": y_true}
+        y_true = tr_target[i]
+        y_tr[tr_key[i]] = {"y_pred": y_pred, "y_true": y_true}
     with open(save_dir + "/y_tr.pkl", "wb") as f:
         pickle.dump(y_tr, f)
 
     logger.info("Val dataset predicting...")
-    y_val: dict[dict[str, float]] = {}
-    for i in range(len(d_val[0])):
-        x = trainer.model.graph_converter(d_val[0][i])
+    y_val: dict[str, dict[str, float]] = {}
+    for i in range(len(val_struct)):
+        x = trainer.model.graph_converter(val_struct[i])
         y_pred = trainer.model(x.as_tf().as_list()).numpy()[0][0]
-        y_true = d_val[1][i]
-        y_val[d_val[2][i]] = {"y_pred": y_pred, "y_true": y_true}
+        y_true = val_target[i]
+        y_val[val_key[i]] = {"y_pred": y_pred, "y_true": y_true}
     with open(save_dir + "/y_val.pkl", "wb") as f:
         pickle.dump(y_val, f)
 
-    if d_test is not None:
+    if test_struct is not None:
         logger.info("Test dataset predicting...")
-        y_test: dict[dict[str, float]] = {}
-        for i in range(len(d_test[0])):
-            x = trainer.model.graph_converter(d_test[0][i])
+        y_test: dict[str, dict[str, float]] = {}
+        for i in range(len(test_struct)):
+            x = trainer.model.graph_converter(test_struct[i])
             y_pred = trainer.model(x.as_tf().as_list()).numpy()[0][0]
-            y_true = d_test[1][i]
-            y_test[d_test[2][i]] = {"y_pred": y_pred, "y_true": y_true}
+            y_true = test_target[i]
+            y_test[test_key[i]] = {"y_pred": y_pred, "y_true": y_true}
         with open(save_dir + "/y_test.pkl", "wb") as f:
             pickle.dump(y_test, f)
 
@@ -144,7 +166,7 @@ def main(args: argparse.Namespace):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--arg-file", type=str, default="./results/perovskite/idx0/args.json"
+        "--arg-file", type=str, default="./results/perovskite/m3gnet/idx0/args.json"
     )
     args = json2args()
     """
@@ -153,7 +175,7 @@ if __name__ == "__main__":
         wandb_jobname (str): wandb job name
         save_dir (str): path to save directory
         property_name (str): property name
-        dataset (str): path to dataset. (pickle file of ndarray[tuple(Structure | Atoms, float, str)])
+        dataset (str): path to dataset. (torch_geometric.data.Dataset object)
         idx_file (str): path to index file. (pickle file of dict[str, ndarray] {"train": ndarray, "val": ndarray, "test": ndarray})
         max_n (int): number of radial basis
         max_l (int): number of angular basis
@@ -175,7 +197,7 @@ if __name__ == "__main__":
     wandb.login(key=os.environ["WANDB_APIKEY"])
     wandb.init(
         project=args.wandb_pjname,
-        name=f"m3g/{args.wandb_jobname}",
+        name=args.wandb_jobname,
         config={"args": args},
     )
     main(args)
