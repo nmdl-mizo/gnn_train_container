@@ -179,7 +179,7 @@ if __name__ == "__main__":
         wandb_jobname (str): wandb job name
         save_dir (str): path to save directory
         property_name (str): property name
-        dataset (str): path to dataset. (GraphDataset which children of torch_geometric.data.Dataset object)
+        dataset (str): path to dataset. (pickle file of list[torch_geometric.data.Data])
         idx_file (str): path to index file. (pickle file of dict[str, ndarray] {"train": ndarray, "val": ndarray, "test": ndarray})
         max_n (int): number of radial basis
         max_l (int): number of angular basis
