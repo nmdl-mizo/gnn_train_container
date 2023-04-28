@@ -7,9 +7,7 @@ import pickle
 
 from m3gnet.models import M3GNet
 from m3gnet.trainers import Trainer
-import numpy as np
 from ase import Atoms
-from pymatgen.core import Structure
 import tensorflow as tf
 import wandb
 from wandb.keras import WandbMetricsLogger, WandbCallback
@@ -47,7 +45,7 @@ def main(args: argparse.Namespace):
         dataset = pickle.load(f)
     max_z = 0
     for d in dataset:
-        max_z = max(max_z, max(d[GraphKeys["Z"]]))
+        max_z = max(max_z, max(d[GraphKeys.Z]))
 
     # split dataset
     with open(args.idx_file, "rb") as f:
