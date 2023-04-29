@@ -65,7 +65,7 @@ def main(args: argparse.Namespace):
     else:
         test_struct = None
     logger.info(f"max_z: {max_z}")
-    logger.info(f"train: {tr_struct}, val: {val_struct}, test:{test_struct}")
+    logger.info(f"train: {len(tr_struct)}, val: {len(val_struct)}, test:{len(test_struct) if test_struct is not None else None}")
 
     # ---------- setup model ----------
     logger.info("Setting up model...")
@@ -76,7 +76,7 @@ def main(args: argparse.Namespace):
         units=args.units,
         cutoff=args.cutoff,
         threebody_cutoff=args.threebody_cutoff,
-        n_atom_type=max_z + 1,
+        n_atom_types=max_z + 1,
         include_states=args.include_states,
         is_intensive=args.is_intensive,
     )
@@ -96,13 +96,13 @@ def main(args: argparse.Namespace):
         epochs=args.epochs,
         callbacks=[
             tf.keras.callbacks.CSVLogger(save_dir + "/log.csv"),
-            tf.keras.callbacks.ModelCheckpoint(
-                filepath=save_dir + "/ckpt.pkl",
-                monitor="val_mae",
-                save_weights_only=False,
-                save_best_only=True,
-                mode="min",
-            ),
+            # tf.keras.callbacks.ModelCheckpoint(
+            #     filepath=save_dir + "/ckpt.pkl",
+            #     monitor="val_mae",
+            #     save_weights_only=False,
+            #     save_best_only=True,
+            #     mode="min",
+            # ),
             tf.keras.callbacks.ReduceLROnPlateau(
                 monitor="val_mae",
                 factor=args.scheduler_factor,
@@ -158,9 +158,10 @@ def main(args: argparse.Namespace):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--arg-file", type=str, default="./results/perovskite/m3gnet/idx0/args.json"
+        "arg_file", type=str, default="./results/perovskite/m3gnet/idx0/args.json"
     )
-    args = json2args()
+    cli_args = parser.parse_args()
+    args = json2args(cli_args.arg_file)
     """
     Args:
         wandb_pjname (str): wandb project name
