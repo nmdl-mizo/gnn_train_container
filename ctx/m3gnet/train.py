@@ -115,7 +115,7 @@ def main(args: argparse.Namespace):
             WandbMetricsLogger(),
         ],
         early_stop_patience=args.early_stop_patience,
-        save_checkpoint=False,  # callback is added by myself
+        save_checkpoint=True,
         verbose=1,
     )
     m3gnet.summary()
