@@ -96,13 +96,6 @@ def main(args: argparse.Namespace):
         epochs=args.epochs,
         callbacks=[
             tf.keras.callbacks.CSVLogger(save_dir + "/log.csv"),
-            # tf.keras.callbacks.ModelCheckpoint(
-            #     filepath=save_dir + "/ckpt.pkl",
-            #     monitor="val_mae",
-            #     save_weights_only=False,
-            #     save_best_only=True,
-            #     mode="min",
-            # ),
             tf.keras.callbacks.ReduceLROnPlateau(
                 monitor="val_mae",
                 factor=args.scheduler_factor,
