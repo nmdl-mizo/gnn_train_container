@@ -58,14 +58,16 @@ def main(args: argparse.Namespace):
     # split dataset
     with open(args.idx_file, "rb") as f:
         idx = pickle.load(f)
-    tr_struct, tr_target, tr_key =get_data(idx["train"], atoms_list, prop_dict[property_name], keys_list)
+    tr_struct, tr_target, tr_key = get_data(idx["train"], atoms_list, prop_dict[property_name], keys_list)
     val_struct, val_target, val_key = get_data(idx["val"], atoms_list, prop_dict[property_name], keys_list)
     if idx.get("test") is not None:
         test_struct, test_target, test_key = get_data(idx["test"], atoms_list, prop_dict[property_name], keys_list)
     else:
         test_struct = None
     logger.info(f"max_z: {max_z}")
-    logger.info(f"train: {len(tr_struct)}, val: {len(val_struct)}, test:{len(test_struct) if test_struct is not None else None}")
+    logger.info(
+        f"train: {len(tr_struct)}, val: {len(val_struct)}, test:{len(test_struct) if test_struct is not None else None}"
+    )
 
     # ---------- setup model ----------
     logger.info("Setting up model...")
@@ -150,9 +152,7 @@ def main(args: argparse.Namespace):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "arg_file", type=str, default="./results/perovskite/m3gnet/idx0/args.json"
-    )
+    parser.add_argument("arg_file", type=str, default="./results/perovskite/m3gnet/idx0/args.json")
     cli_args = parser.parse_args()
     args = json2args(cli_args.arg_file)
     """
