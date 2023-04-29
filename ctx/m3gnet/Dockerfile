@@ -9,9 +9,7 @@ RUN pip install -U pip && pip install \
     ase==3.* \
     numpy==1.* \
     sympy==1.* \
-    monty==1.0.0 \
     wandb \
-    torch_geometric \
     m3gnet==0.2.4
 
 ENTRYPOINT [ "python3", "train.py" ]

@@ -1,29 +1,21 @@
-build-m3gnet:
-	docker build -t m3gnet ./ctx/m3gnet
+.PHONY: build
 
-train-m3gnet:
+build:
+	docker build -t $(MODEL) ./ctx/$(MODEL)
+
+train:
 	docker run --rm \
+	-u $(id -u):$(id -g) \
 	--mount type=bind,source="$(shell pwd)"/data,target=/app/data \
 	--mount type=bind,source="$(shell pwd)"/common,target=/app/common \
 	--mount type=bind,source="$(shell pwd)"/results,target=/app/results \
-	m3gnet $(ARGFILE)\
+	$(MODEL) $(ARGFILE)\
 
-build-schnet:
-	docker build -t schnet ./ctx/schnet
-
-train-schnet:
-	docker run --rm \
+inspect:
+	docker run --rm -it \
+	-u $(shell id -u):$(shell id -g) \
 	--mount type=bind,source="$(shell pwd)"/data,target=/app/data \
 	--mount type=bind,source="$(shell pwd)"/common,target=/app/common \
 	--mount type=bind,source="$(shell pwd)"/results,target=/app/results \
-	schnet $(ARGFILE)\
-
-build-dimenet:
-	docker build -t dimenet ./ctx/dimenet
-
-train-dimenet:
-	docker run --rm \
-	--mount type=bind,source="$(shell pwd)"/data,target=/app/data \
-	--mount type=bind,source="$(shell pwd)"/common,target=/app/common \
-	--mount type=bind,source="$(shell pwd)"/results,target=/app/results \
-	dimenet $(ARGFILE)\
+	--entrypoint bash \
+	$(MODEL) \

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import sys
 import argparse
 import logging
 import pickle
@@ -9,15 +10,15 @@ from m3gnet.models import M3GNet
 from m3gnet.trainers import Trainer
 from ase import Atoms
 import tensorflow as tf
-from torch_geometric.data import Data
 import wandb
 from wandb.keras import WandbMetricsLogger, WandbCallback
 
-from .common.utils import json2args
-from .common.data import graphdata2atoms, GraphKeys
+sys.path.append(os.path.join(os.path.dirname(__file__), "/common"))
+from common.utils import json2args, get_data
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
+
 
 gpus = tf.config.list_physical_devices("GPU")
 if gpus:
@@ -43,37 +44,24 @@ def main(args: argparse.Namespace):
 
     # ---------- load dataset ----------
     logger.info("Loading dataset...")
-    with open(args.dataset, "rb") as f:
-        dataset: list[Data] = pickle.load(f)
+    with open(f"{args.dataset_dir}/atoms_list.p", "rb") as f:
+        atoms_list: list[Atoms] = pickle.load(f)
+    with open(f"{args.dataset_dir}/prop_dict.p", "rb") as f:
+        prop_dict: dict[str, list[float]] = pickle.load(f)
+    with open(f"{args.dataset_dir}/keys_list.p", "rb") as f:
+        keys_list: list[str] = pickle.load(f)
+    # max atomic number
     max_z = 0
-    for d in dataset:
-        max_z = max(max_z, max(d[GraphKeys.Z]))
+    for at in atoms_list:
+        max_z = max(max_z, max(at.numbers))
 
     # split dataset
     with open(args.idx_file, "rb") as f:
         idx = pickle.load(f)
-    tr_struct: list[Atoms] = []
-    tr_target: list[float] = []
-    tr_key: list[str] = []
-    for i in idx["train"]:
-        tr_struct.append(graphdata2atoms(dataset[i]))
-        tr_target.append(dataset[i][property_name])
-        tr_key.append(dataset[i]["key"])
-    val_struct: list[Atoms] = []
-    val_target: list[float] = []
-    val_key: list[str] = []
-    for i in idx["val"]:
-        val_struct.append(graphdata2atoms(dataset[i]))
-        val_target.append(dataset[i][property_name])
-        val_key.append(dataset[i]["key"])
+    tr_struct, tr_target, tr_key =get_data(idx["train"], atoms_list, prop_dict[property_name], keys_list)
+    val_struct, val_target, val_key = get_data(idx["val"], atoms_list, prop_dict[property_name], keys_list)
     if idx.get("test") is not None:
-        test_struct = []
-        test_target: list[float] = []
-        test_key: list[str] = []
-        for i in idx["test"]:
-            test_struct.append(graphdata2atoms(dataset[i]))
-            test_target.append(dataset[i][property_name])
-            test_key.append(dataset[i]["key"])
+        test_struct, test_target, test_key = get_data(idx["test"], atoms_list, prop_dict[property_name], keys_list)
     else:
         test_struct = None
     logger.info(f"max_z: {max_z}")
@@ -179,7 +167,7 @@ if __name__ == "__main__":
         wandb_jobname (str): wandb job name
         save_dir (str): path to save directory
         property_name (str): property name
-        dataset (str): path to dataset. (pickle file of list[torch_geometric.data.Data])
+        dataset_dir (str): path to dataset directory. (contains three pickle file of `atoms_list.p`, `prop_dict.p`, `keys_list.p`)
         idx_file (str): path to index file. (pickle file of dict[str, ndarray] {"train": ndarray, "val": ndarray, "test": ndarray})
         max_n (int): number of radial basis
         max_l (int): number of angular basis

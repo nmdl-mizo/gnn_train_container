@@ -5,11 +5,13 @@
 1. build the image
 
     ```bash
-    make build-m3gnet
+    make build MODEL=<model name>
     ```
+
+    Model name is the name of the context directory in `ctx/MODEL`.
 
 2. run the trainer container
 
     ```bash
-    make train-m3gnet ARGFILE=<path to argfile>
+    make train MODEL=<model name> ARGFILE=<path to argument file>
     ```

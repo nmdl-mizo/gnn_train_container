@@ -1,2 +1,10 @@
 .env
-results/*
+results/
+
+__pycache__/
+.ven/
+venv/
+
+atoms_list.p
+prop_dict.p
+keys_list.p
