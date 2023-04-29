@@ -9,10 +9,12 @@ from m3gnet.models import M3GNet
 from m3gnet.trainers import Trainer
 from ase import Atoms
 import tensorflow as tf
+from torch_geometric.data import Data
 import wandb
 from wandb.keras import WandbMetricsLogger, WandbCallback
 
-from .utils import json2args, graphdata2atoms, GraphKeys
+from .common.utils import json2args
+from .common.data import graphdata2atoms, GraphKeys
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -42,7 +44,7 @@ def main(args: argparse.Namespace):
     # ---------- load dataset ----------
     logger.info("Loading dataset...")
     with open(args.dataset, "rb") as f:
-        dataset = pickle.load(f)
+        dataset: list[Data] = pickle.load(f)
     max_z = 0
     for d in dataset:
         max_z = max(max_z, max(d[GraphKeys.Z]))
@@ -104,24 +106,28 @@ def main(args: argparse.Namespace):
         loss=tf.keras.losses.MeanSquaredError(),
         batch_size=args.batch_size,
         epochs=args.epochs,
-        train_metrics=[
-            tf.keras.metrics.RootMeanSquaredError(),
-            tf.keras.metrics.MeanAbsoluteError(),
-        ],
         callbacks=[
             tf.keras.callbacks.CSVLogger(save_dir + "/log.csv"),
+            tf.keras.callbacks.ModelCheckpoint(
+                filepath=save_dir + "/ckpt.pkl",
+                monitor="val_mae",
+                save_weights_only=False,
+                save_best_only=True,
+                mode="min",
+            ),
             tf.keras.callbacks.ReduceLROnPlateau(
                 monitor="val_mae",
                 factor=args.scheduler_factor,
                 patience=args.scheduler_patience,
                 verbose=0,
-                mode="auto",
+                mode="min",
                 min_lr=args.scheduler_min_lr,
             ),
             WandbCallback(save_graph=False, save_model=False, monitor="val_mae"),
             WandbMetricsLogger(),
         ],
         early_stop_patience=args.early_stop_patience,
+        save_checkpoint=False,  # callback is added by myself
         verbose=1,
     )
     m3gnet.summary()
@@ -173,7 +179,7 @@ if __name__ == "__main__":
         wandb_jobname (str): wandb job name
         save_dir (str): path to save directory
         property_name (str): property name
-        dataset (str): path to dataset. (torch_geometric.data.Dataset object)
+        dataset (str): path to dataset. (pickle file of list[torch_geometric.data.Data])
         idx_file (str): path to index file. (pickle file of dict[str, ndarray] {"train": ndarray, "val": ndarray, "test": ndarray})
         max_n (int): number of radial basis
         max_l (int): number of angular basis

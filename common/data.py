@@ -1,26 +1,20 @@
 from __future__ import annotations
 
-import argparse
-import json
-
 from ase import Atoms
 from torch_geometric.data import Data
 
 
-def json2args(json_path: str) -> argparse.Namespace:
-    with open(json_path) as f:
-        args = argparse.Namespace(**json.load(f))
-    return args
-
 class GraphKeys:
-    Batch_idx = "batch"
-    Edge_idx = "edge_index"  # Attributes marked with "index" are automatically incremented in batch processing
-    Position = "pos"
-    Z = "z"
-    Lattice = "lattice"
-    PBC = "pbc"
-    Edge_shift = "edge_shift"
-    Edge_attr = "edge_attr"
+    Lattice = "lattice"  # (B, 3, 3) shape
+    PBC = "pbc"  # (B, 3) shape
+
+    Batch_idx = "batch"  # (N) shape
+    Z = "z"  # (N) shape
+    Position = "pos"  # (N, 3) shape
+
+    Edge_idx = "edge_index"  # (2, E) shape
+    Edge_shift = "edge_shift"  # (E, 3) shape
+
 
 def graphdata2atoms(self, data: Data) -> Atoms:
     """Helper function to convert one `torch_geometric.data.Data` object to
