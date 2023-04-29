@@ -2,7 +2,7 @@
 results/
 
 __pycache__/
-.ven/
+.venv/
 venv/
 
 # dataset
