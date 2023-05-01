@@ -5,7 +5,8 @@ import sys
 import argparse
 import logging
 import pickle
-from typing import Optional, List, Dict, Tuple, Union
+from typing import Optional, List, Dict
+import datetime
 
 from ase import Atoms
 import numpy as np
@@ -16,6 +17,7 @@ import schnetpack as spk
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import CSVLogger, WandbLogger
 from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint, EarlyStopping
+import wandb
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "/common"))
 from common.utils import json2args, get_data
@@ -42,7 +44,7 @@ class AtomsDataModuleCustom(spk.data.AtomsDataModule):
         cleanup_workdir_stage: Optional[str] = "test",
         pin_memory: Optional[bool] = False,
     ):
-        super.__init__(
+        super().__init__(
             datapath="./dummy",
             batch_size=batch_size,
             num_train=None,
@@ -83,6 +85,7 @@ def main(args: argparse.Namespace):
     save_dir = args.save_dir
     property_name = args.property_name
     property_unit = args.property_unit
+    now = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
 
     # ---------- log info ----------
     logger.info("Start training SchNet...")
@@ -107,42 +110,75 @@ def main(args: argparse.Namespace):
         idx = pickle.load(f)
     # train
     tr_struct, tr_target, tr_key = get_data(idx["train"], atoms_list, prop_dict[property_name], keys_list)
+    tr_target_dict: List[Dict] = []
+    for v in tr_target:
+        tr_target_dict.append({property_name: np.array([v])})
+
+    # mean
     if args.add_mean and args.divide_by_n_atoms:
-        n_atoms = np.array([len(at) for at in tr_struct])
-        mean = (np.array(tr_target) / n_atoms).mean()
+        n_atoms = torch.tensor([len(at) for at in tr_struct])
+        mean = (torch.tensor(tr_target) / n_atoms).mean()
     if args.add_mean and not args.divide_by_n_atoms:
-        mean = np.array(tr_target).mean()
+        mean = torch.tensor(tr_target).mean()
     else:
         mean = None
-    prop_only_dict = {property_name: tr_target}
-    tr_dataset = spk.data.ASEAtomsData(
-        "./dummy",
-        distance_unit="Ang",
+
+    # preprocessers
+    transforms = [
+        spk.transform.SubtractCenterOfMass(),
+        spk.transform.RemoveOffsets(
+            property=property_name,
+            remove_mean=args.add_mean,
+            remove_atomrefs=False,
+            propery_mean=mean,
+            is_extensive=args.is_extensive,
+        ),
+        spk.transform.ASENeighborList(args.cutoff),
+        spk.transform.CastTo32(),
+    ]
+    property_units = {property_name: property_unit}
+    distance_unit = "Ang"
+
+    tr_dataset = spk.data.ASEAtomsData.create(
+        f"./data/perovskite/tr_{now}.db",
         property_unit_dict={property_name: property_unit},
         atomrefs=None,
+        transforms=transforms,
+        distance_unit=distance_unit,
+        property_units=property_units,
     )
-    tr_dataset.add_systems(prop_only_dict, tr_struct)
+    tr_dataset.add_systems(tr_target_dict, tr_struct)
 
+    # val
     val_struct, val_target, val_key = get_data(idx["val"], atoms_list, prop_dict[property_name], keys_list)
-    prop_only_dict = {property_name: val_target}
-    val_dataset = spk.data.ASEAtomsData(
-        "./dummy",
-        distance_unit="Ang",
+    val_target_dict: List[Dict] = []
+    for v in val_target:
+        val_target_dict.append({property_name: np.array([v])})
+    val_dataset = spk.data.ASEAtomsData.create(
+        f"./data/perovskite/val_{now}.db",
         property_unit_dict={property_name: property_unit},
         atomrefs=None,
+        transforms=transforms,
+        distance_unit=distance_unit,
+        property_units=property_units,
     )
-    val_dataset.add_systems(prop_only_dict, val_struct)
+    val_dataset.add_systems(val_target_dict, val_struct)
 
+    # test
     if idx.get("test") is not None:
         test_struct, test_target, test_key = get_data(idx["test"], atoms_list, prop_dict[property_name], keys_list)
-        prop_only_dict = {property_name: test_target}
-        test_dataset = spk.data.ASEAtomsData(
-            "./dummy",
-            distance_unit="Ang",
+        test_target_dict: List[Dict] = []
+        for v in test_target:
+            test_target_dict.append({property_name: np.array([v])})
+        test_dataset = spk.data.ASEAtomsData.create(
+            f"./data/perovskite/test_{now}.db",
             property_unit_dict={property_name: property_unit},
             atomrefs=None,
+            transforms=transforms,
+            distance_unit=distance_unit,
+            property_units=property_units,
         )
-        test_dataset.add_systems(prop_only_dict, test_struct)
+        test_dataset.add_systems(test_target_dict, test_struct)
     else:
         test_dataset = None
 
@@ -152,24 +188,15 @@ def main(args: argparse.Namespace):
         train_dataset=tr_dataset,
         val_dataset=val_dataset,
         test_dataset=test_dataset,
-        transforms=[
-            spk.transformers.SubtractCenterOfMass(),
-            spk.transformers.RemoveOffsets(
-                property=property_name,
-                remove_mean=args.add_mean,
-                remove_atomrefs=False,
-                property_mean=mean,
-                is_extensive=args.is_extensive,
-            ),
-            spk.transform.ASENeighborList(args.cutoff),
-        ],
         num_workers=args.num_workers,
-        property_units={property_name: property_unit},
-        distance_unit="Ang",
+        transforms=transforms,
+        distance_unit=distance_unit,
+        property_units=property_units,
         pin_memory=False,
     )
 
     logger.info(f"max_z: {max_z}")
+    logger.info(f"mean: {mean}")
     logger.info(
         f"train: {len(tr_dataset)}, val: {len(val_dataset)}, test:{len(test_dataset) if test_dataset is not None else None}"
     )
@@ -179,7 +206,7 @@ def main(args: argparse.Namespace):
     representation = spk.representation.SchNet(
         n_atom_basis=args.n_atom_basis,
         n_interactions=args.n_interactions,
-        radial_basis=spk.nn.GaussianRBR(
+        radial_basis=spk.nn.GaussianRBF(
             n_rbf=args.n_rbf,
             cutoff=args.cutoff,
             start=0.0,
@@ -188,13 +215,13 @@ def main(args: argparse.Namespace):
         cutoff_fn=spk.nn.cutoff.CosineCutoff(args.cutoff),
         n_filters=args.n_filters,
         shared_interactions=False,
-        max_z=max_z,
+        max_z=max_z + 1,
         activation=spk.nn.activations.shifted_softplus,
     )
     model = spk.model.NeuralNetworkPotential(
         representation,
-        input_modules=[spk.atomistic.PairwiseDistance()],
-        ouput_modules=[
+        input_modules=[spk.atomistic.PairwiseDistances()],
+        output_modules=[
             spk.atomistic.Atomwise(
                 n_in=args.n_atom_basis,
                 n_out=1,
@@ -213,7 +240,7 @@ def main(args: argparse.Namespace):
                 add_mean=args.add_mean,
                 add_atomrefs=False,
                 is_extensive=args.is_extensive,
-                property_mean=mean,
+                propery_mean=mean,
             ),
         ],
         input_dtype_str="float32",
@@ -231,7 +258,7 @@ def main(args: argparse.Namespace):
                     "mae": torchmetrics.regression.MeanAbsoluteError(),
                     "rmse": torchmetrics.regression.MeanSquaredError(squared=False),
                 },
-                constrains=None,
+                constraints=None,
             )
         ],
         optimizer_cls=torch.optim.Adam,
@@ -278,8 +305,13 @@ def main(args: argparse.Namespace):
     logger.info("Train dataset predicting...")
     y_tr: dict[str, dict[str, float]] = {}
     for i in range(len(tr_struct)):
-        x = tr_dataset[i]
-        y_pred = best_model(x).detach().cpu().item()
+        with torch.no_grad():
+            x = tr_dataset[i]
+            idx_m = torch.zeros_like(x[spk.properties.Z])
+            x[spk.properties.idx_m] = idx_m
+            x = {k: v.to("cuda") for k, v in x.items()}
+            out = best_model(x)
+            y_pred = out[property_name].detach().cpu().item()
         y_true = tr_target[i]
         y_tr[tr_key[i]] = {"y_pred": y_pred, "y_true": y_true}
     with open(save_dir + "/y_tr.pkl", "wb") as f:
@@ -288,8 +320,13 @@ def main(args: argparse.Namespace):
     logger.info("Val dataset predicting...")
     y_val: dict[str, dict[str, float]] = {}
     for i in range(len(val_struct)):
-        x = val_dataset[i]
-        y_pred = best_model(x).detach().cpu().item()
+        with torch.no_grad():
+            x = val_dataset[i]
+            idx_m = torch.zeros_like(x[spk.properties.Z])
+            x[spk.properties.idx_m] = idx_m
+            x = {k: v.to("cuda") for k, v in x.items()}
+            out = best_model(x)
+            y_pred = out[property_name].detach().cpu().item()
         y_true = val_target[i]
         y_val[val_key[i]] = {"y_pred": y_pred, "y_true": y_true}
     with open(save_dir + "/y_val.pkl", "wb") as f:
@@ -299,8 +336,13 @@ def main(args: argparse.Namespace):
         logger.info("Test dataset predicting...")
         y_test: dict[str, dict[str, float]] = {}
         for i in range(len(test_struct)):
-            x = test_dataset[i]
-            y_pred = best_model(x).detach().cpu().item()
+            with torch.no_grad():
+                x = test_dataset[i]
+                idx_m = torch.zeros_like(x[spk.properties.Z])
+                x[spk.properties.idx_m] = idx_m
+                x = {k: v.to("cuda") for k, v in x.items()}
+                out = best_model(x)
+                y_pred = out[property_name].detach().cpu().item()
             y_true = test_target[i]
             y_test[test_key[i]] = {"y_pred": y_pred, "y_true": y_true}
         with open(save_dir + "/y_test.pkl", "wb") as f:
@@ -324,10 +366,12 @@ if __name__ == "__main__":
         is_extensive (bool): whether to predict extensive property
         cutoff (float): cutoff radius
         batch_size (int): batch size
+        num_workers (int): number of workers
         n_atom_basis (int): number of basis of atom embedding
         n_interactions (int): number of interaction layers
         n_rbf (int): number of radial basis functions
         trainable_gaussians (bool): whether to train gaussian width
+        n_filters (int): number of filters
         lr (float): learning rate
         scheduler_factor (float): factor of scheduler
         scheduler_patience (int): patience of scheduler
@@ -337,4 +381,5 @@ if __name__ == "__main__":
         wandb_pjname (str): wandb project name
         wandb_jobname (str): wandb job name
     """  # noqa: E501
+    wandb.login(key=os.environ["WANDB_APIKEY"])
     main(args)
