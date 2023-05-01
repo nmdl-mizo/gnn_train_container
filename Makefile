@@ -6,6 +6,7 @@ train:
 	-u $(shell id -u):$(shell id -g) \
 	--env-file .env \
 	--runtime nvidia \
+	--gpus all \
 	--mount type=bind,source="$(shell pwd)"/data,target=/app/data \
 	--mount type=bind,source="$(shell pwd)"/common,target=/app/common \
 	--mount type=bind,source="$(shell pwd)"/results,target=/app/results \
@@ -15,6 +16,8 @@ inspect:
 	docker run --rm -it \
 	-u $(shell id -u):$(shell id -g) \
 	--env-file .env \
+	--runtime nvidia \
+	--gpus all \
 	--mount type=bind,source="$(shell pwd)"/data,target=/app/data \
 	--mount type=bind,source="$(shell pwd)"/common,target=/app/common \
 	--mount type=bind,source="$(shell pwd)"/results,target=/app/results \
