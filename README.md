@@ -13,5 +13,5 @@
 2. run the trainer container
 
     ```bash
-    make train MODEL=<model name> ARGFILE=<path to argument file>
+    make train MODEL=<model name> ARG=<path to argument file>
     ```
