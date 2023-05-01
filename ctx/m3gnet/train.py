@@ -96,6 +96,7 @@ def main(args: argparse.Namespace):
         loss=tf.keras.losses.MeanSquaredError(),
         batch_size=args.batch_size,
         epochs=args.epochs,
+        val_monitor="val_mae",
         callbacks=[
             tf.keras.callbacks.CSVLogger(save_dir + "/log.csv"),
             tf.keras.callbacks.ReduceLROnPlateau(
@@ -106,11 +107,12 @@ def main(args: argparse.Namespace):
                 mode="min",
                 min_lr=args.scheduler_min_lr,
             ),
+            tf.keras.callbacks.EarlyStopping(monitor="val_mae", patience=args.early_stop_patience, verbose=1),
             WandbCallback(save_graph=False, save_model=False, monitor="val_mae"),
             WandbMetricsLogger(),
         ],
         early_stop_patience=args.early_stop_patience,
-        save_checkpoint=True,
+        save_checkpoint=False,
         verbose=1,
     )
     m3gnet.summary()
