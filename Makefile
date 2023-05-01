@@ -1,5 +1,3 @@
-.PHONY: build
-
 build:
 	docker build -t $(MODEL) ./ctx/$(MODEL)
 
