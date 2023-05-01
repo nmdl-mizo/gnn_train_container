@@ -124,8 +124,11 @@ def main(args: argparse.Namespace):
         mean = None
 
     # preprocessers
-    transforms = [
-        spk.transform.SubtractCenterOfMass(),
+    if args.subtract_center_of_mass:
+        transforms = [spk.transform.SubtractCenterOfMass()]
+    else:
+        transforms = []
+    transforms += [
         spk.transform.RemoveOffsets(
             property=property_name,
             remove_mean=args.add_mean,
@@ -363,6 +366,7 @@ if __name__ == "__main__":
         idx_file (str): path to index file. (pickle file of dict[str, ndarray] {"train": ndarray, "val": ndarray, "test": ndarray})
         add_mean (bool): whether to add mean
         divide_by_n_atoms (bool): whether to divide by number of atoms
+        subtract_center_of_mass (bool): whether to subtract center of mass
         is_extensive (bool): whether to predict extensive property
         cutoff (float): cutoff radius
         batch_size (int): batch size
