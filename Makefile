@@ -9,7 +9,7 @@ train:
 	--mount type=bind,source="$(shell pwd)"/data,target=/app/data \
 	--mount type=bind,source="$(shell pwd)"/common,target=/app/common \
 	--mount type=bind,source="$(shell pwd)"/results,target=/app/results \
-	$(MODEL) $(ARGFILE) \
+	$(MODEL) $(ARG) \
 
 inspect:
 	docker run --rm -it \
