@@ -6,7 +6,6 @@ train:
 	-u $(shell id -u):$(shell id -g) \
 	--env-file .env \
 	--runtime nvidia \
-	--gpus all \
 	--shm-size=16g \
 	--mount type=bind,source="$(shell pwd)"/data,target=/app/data \
 	--mount type=bind,source="$(shell pwd)"/common,target=/app/common \
@@ -18,7 +17,6 @@ inspect:
 	-u $(shell id -u):$(shell id -g) \
 	--env-file .env \
 	--runtime nvidia \
-	--gpus all \
 	--shm-size=1g \
 	--mount type=bind,source="$(shell pwd)"/data,target=/app/data \
 	--mount type=bind,source="$(shell pwd)"/common,target=/app/common \
