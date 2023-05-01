@@ -3,7 +3,7 @@ build:
 
 train:
 	docker run --rm \
-	-u $(id -u):$(id -g) \
+	-u $(shell id -u):$(shell id -g) \
 	--env-file .env \
 	--runtime nvidia \
 	--mount type=bind,source="$(shell pwd)"/data,target=/app/data \
