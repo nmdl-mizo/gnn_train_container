@@ -113,7 +113,7 @@ class ModelModule(pl.LightningModule):
         self.log("train_batch_size", float(self.batch), on_step=True, on_epoch=False, logger=False)
 
         pred = self(batch)
-        mse_loss = self.mse(pred, batch[self.property_name].squeeze(-1))
+        mse_loss = self.mse(pred.squeeze(-1), batch[self.property_name].squeeze(-1))
         self.log(f"train_loss", mse_loss, on_step=True, on_epoch=False, prog_bar=True, logger=True)
 
         return mse_loss
@@ -122,11 +122,11 @@ class ModelModule(pl.LightningModule):
         self.log("val_batch_size", float(self.batch), on_step=True, on_epoch=False, logger=False)
 
         pred = self(batch)
-        mse_loss = self.mse(pred, batch[self.property_name].squeeze(-1))
-        self.log(f"val_loss", mse_loss, on_step=True, on_epoch=False, prog_bar=False, logger=True)
+        mse_loss = self.mse(pred.squeeze(-1), batch[self.property_name].squeeze(-1))
+        self.log(f"val_loss", mse_loss, on_step=False, on_epoch=True, prog_bar=False, logger=True)
 
-        mae_loss = self.mae(pred, batch[self.property_name].squeeze(-1))
-        self.log(f"val_{self.property_name}_mae", mae_loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
+        mae_loss = self.mae(pred.squeeze(-1), batch[self.property_name].squeeze(-1))
+        self.log(f"val_{self.property_name}_mae", mae_loss, on_step=False, on_epoch=True, prog_bar=True, logger=True)
 
         return mae_loss
 
@@ -198,15 +198,6 @@ def main(args: argparse.Namespace):
     tr_struct, tr_target, tr_key = get_data(idx["train"], atoms_list, prop_dict[property_name], keys_list)
     tr_data_list = [atoms2graphdata(at, k, y, property_name) for at, k, y in zip(tr_struct, tr_key, tr_target)]
 
-    # # mean
-    # if args.add_mean and args.divide_by_n_atoms:
-    #     n_atoms = torch.tensor([len(at) for at in tr_struct])
-    #     mean = (torch.tensor(tr_target) / n_atoms).mean()
-    # if args.add_mean and not args.divide_by_n_atoms:
-    #     mean = torch.tensor(tr_target).mean()
-    # else:
-    #     mean = None
-
     # val
     val_struct, val_target, val_key = get_data(idx["val"], atoms_list, prop_dict[property_name], keys_list)
     val_data_list = [atoms2graphdata(at, k, y, property_name) for at, k, y in zip(val_struct, val_key, val_target)]
@@ -229,7 +220,6 @@ def main(args: argparse.Namespace):
     )
 
     logger.info(f"max_z: {max_z}")
-    # logger.info(f"mean: {mean}")
     logger.info(
         f"train: {len(tr_data_list)}, val: {len(val_data_list)}, test:{len(test_data_list) if test_data_list is not None else None}"
     )
@@ -287,45 +277,21 @@ def main(args: argparse.Namespace):
     trainer.fit(model=model_module, datamodule=datamodule)
 
     # ---------- predict ----------
-    logger.info("Start predicting...")
-    best_model = model_module.load_from_checkpoint(
-        f"{save_dir}/checkpoint/best.ckpt",
-        map_location="cuda",
-    )
-    best_model.to("cuda")
-
-    logger.info("Train dataset predicting...")
-    y_tr: dict[str, dict[str, float]] = {}
-    for i in range(len(tr_struct)):
-        with torch.no_grad():
-            x = tr_data_list[i]
-            x.to("cuda")
-            y_pred = best_model(x).detach().cpu().item()
-        y_true = tr_target[i]
-        y_tr[tr_key[i]] = {"y_pred": y_pred, "y_true": y_true}
-    with open(save_dir + "/y_tr.pkl", "wb") as f:
-        pickle.dump(y_tr, f)
-
-    logger.info("Val dataset predicting...")
-    y_val: dict[str, dict[str, float]] = {}
-    for i in range(len(val_struct)):
-        with torch.no_grad():
-            x = val_data_list[i]
-            x.to("cuda")
-            y_pred = best_model(x).detach().cpu().item()
-        y_true = val_target[i]
-        y_val[val_key[i]] = {"y_pred": y_pred, "y_true": y_true}
-    with open(save_dir + "/y_val.pkl", "wb") as f:
-        pickle.dump(y_val, f)
-
     if test_struct is not None:
-        logger.info("Test dataset predicting...")
+        logger.info("Start predicting...")
+        best_model = ModelModule.load_from_checkpoint(
+            f"{save_dir}/checkpoint/best.ckpt",
+            model=model,
+            map_location="cuda",
+        )
+        best_model.to("cuda")
+
         y_test: dict[str, dict[str, float]] = {}
         for i in range(len(test_struct)):
             with torch.no_grad():
                 x = test_data_list[i]
                 x.to("cuda")
-                y_pred = best_model(x).detach().cpu().item()
+                y_pred = best_model.model(x).detach().cpu().item()
             y_true = test_target[i]
             y_test[test_key[i]] = {"y_pred": y_pred, "y_true": y_true}
         with open(save_dir + "/y_test.pkl", "wb") as f:
