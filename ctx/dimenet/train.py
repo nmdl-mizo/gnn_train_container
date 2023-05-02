@@ -161,7 +161,7 @@ def atoms2graphdata(atoms: Atoms, key: str, prop: float, property_name: str) -> 
     # add batch dimension
     data[GraphKeys.Lattice] = torch.tensor(atoms.cell.array, dtype=torch.float32).unsqueeze(0)
     data[GraphKeys.Key] = key
-    data[property_name] = torch.tensor(prop, dtype=torch.float32)
+    data[property_name] = torch.tensor([prop], dtype=torch.float32)
     return data
 
 
