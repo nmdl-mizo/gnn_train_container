@@ -132,15 +132,15 @@ class ModelModule(pl.LightningModule):
 
     def configure_optimizers(self):
         opt = torch.optim.Adam(self.parameters(), lr=self.lr)
-        sche = torch.optim.lr_scheduler.ReduceLROnPlateau(
-            opt, patience=self.patience, factor=self.factor, min_lr=self.min_lr
-        )
-
-        return {
-            "optimizer": opt,
-            "lr_scheduler": sche,
+        sche = {
+            "name": "lr_schedule",
+            "scheduler": torch.optim.lr_scheduler.ReduceLROnPlateau(
+                opt, patience=self.patience, factor=self.factor, min_lr=self.min_lr
+            ),
             "monitor": f"val_{self.property_name}_mae",
         }
+
+        return [opt], [sche]
 
 
 def atoms2graphdata(atoms: Atoms, key: str, prop: float, property_name: str) -> Data:
