@@ -110,10 +110,10 @@ class ModelModule(pl.LightningModule):
 
         pred = self(batch)
         mse_loss = self.mse(pred, batch[self.property_name])
-        self.log(f"val_loss", mse_loss, on_step=True, on_epoch=False, prog_bar=False, logger=True)
+        self.log(f"val_loss", mse_loss, on_step=False, on_epoch=True, prog_bar=False, logger=True)
 
         mae_loss = self.mae(pred, batch[self.property_name])
-        self.log(f"val_{self.property_name}_mae", mae_loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
+        self.log(f"val_{self.property_name}_mae", mae_loss, on_step=False, on_epoch=True, prog_bar=True, logger=True)
 
         return mae_loss
 
@@ -247,6 +247,7 @@ def main(args: argparse.Namespace):
         logger.info("Start predicting...")
         best_model = ModelModule.load_from_checkpoint(
             f"{save_dir}/checkpoint/best.ckpt",
+            model=model,
             map_location="cuda",
         )
         best_model.to("cuda")
@@ -255,7 +256,7 @@ def main(args: argparse.Namespace):
         for i, x in enumerate(test):
             with torch.no_grad():
                 x.to("cuda")
-                y_pred = best_model(x).detach().cpu().item()
+                y_pred = best_model.model(x).detach().cpu().item()
             y_true = x[property_name].item()
             y_test[x["key"]] = {"y_pred": y_pred, "y_true": y_true}
         with open(save_dir + "/y_test.pkl", "wb") as f:
