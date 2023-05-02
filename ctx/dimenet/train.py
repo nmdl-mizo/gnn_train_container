@@ -126,7 +126,7 @@ class ModelModule(pl.LightningModule):
         self.log(f"val_loss", mse_loss, on_step=True, on_epoch=False, prog_bar=False, logger=True)
 
         mae_loss = self.mae(pred, batch[self.property_name].squeeze(-1))
-        self.log(f"val_{self.property_name}_mae", mae_loss, on_step=True, on_epoch=False, prog_bar=True, logger=True)
+        self.log(f"val_{self.property_name}_mae", mae_loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
 
         return mae_loss
 
