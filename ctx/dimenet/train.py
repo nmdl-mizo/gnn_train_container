@@ -112,22 +112,22 @@ class ModelModule(pl.LightningModule):
         return l(pred, true)
 
     def training_step(self, batch, batch_idx):
-        self.log("train/batch_size", float(self.batch), on_step=True, on_epoch=True, logger=False)
+        self.log("train_batch_size", float(self.batch), on_step=True, on_epoch=False, logger=False)
 
         pred = self(batch)
-        mse_loss = self.mse(pred, batch[self.property_name])
+        mse_loss = self.mse(pred, batch[self.property_name].squeeze(-1))
         self.log(f"train_loss", mse_loss, on_step=True, on_epoch=False, prog_bar=True, logger=True)
 
         return mse_loss
 
     def validation_step(self, batch, batch_idx):
-        self.log("val/batch_size", float(self.batch), on_step=False, on_epoch=True, logger=False)
+        self.log("val_batch_size", float(self.batch), on_step=True, on_epoch=False, logger=False)
 
         pred = self(batch)
-        mse_loss = self.mse(pred, batch[self.property_name])
+        mse_loss = self.mse(pred, batch[self.property_name].squeeze(-1))
         self.log(f"val_loss", mse_loss, on_step=True, on_epoch=False, prog_bar=False, logger=True)
 
-        mae_loss = self.mae(pred, batch[self.property_name])
+        mae_loss = self.mae(pred, batch[self.property_name].squeeze(-1))
         self.log(f"val_{self.property_name}_mae", mae_loss, on_step=True, on_epoch=False, prog_bar=True, logger=True)
 
         return mae_loss
