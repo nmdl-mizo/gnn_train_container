@@ -3,15 +3,13 @@ import sys
 import argparse
 import logging
 import pickle
-from typing import List, Dict
-import datetime
+from typing import List
 
 from ase import Atoms
-import numpy as np
 import torch
 import pytorch_lightning as pl
 import torch_geometric
-from torch_geometric.data import Data, Dataset
+from torch_geometric.data import Data
 from torch_geometric.loader import DataLoader
 from pytorch_lightning.loggers import CSVLogger, WandbLogger
 from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint, EarlyStopping
