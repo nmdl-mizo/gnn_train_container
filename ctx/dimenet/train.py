@@ -291,7 +291,9 @@ def main(args: argparse.Namespace):
             with torch.no_grad():
                 x = test_data_list[i]
                 x.to("cuda")
-                y_pred = best_model.model(x).detach().cpu().item()
+                y_pred = (
+                    best_model.model(x[GraphKeys.Z], x[GraphKeys.Pos], x.get(GraphKeys.Batch_idx)).detach().cpu().item()
+                )
             y_true = test_target[i]
             y_test[test_key[i]] = {"y_pred": y_pred, "y_true": y_true}
         with open(save_dir + "/y_test.pkl", "wb") as f:
