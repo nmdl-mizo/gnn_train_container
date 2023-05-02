@@ -1,6 +1,10 @@
 build:
 	docker build -t $(MODEL) ./ctx/$(MODEL)
 
+build-git:
+	docker build --build-arg GIT_USER=$(GIT_USER) --build-arg GIT_TOKEN=$(GIT_TOKEN) \
+	-t $(MODEL) ./ctx/$(MODEL)
+
 train:
 	docker run --rm \
 	-u $(shell id -u):$(shell id -g) \
