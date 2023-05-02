@@ -271,7 +271,6 @@ if __name__ == "__main__":
     Args:
         save_dir (str): path to save directory
         property_name (str): property name
-        property_unit (str): property unit
         dataset_dir (str): path to dataset directory. (contains three pickle file of `atoms_list.p`, `prop_dict.p`, `keys_list.p`)
         idx_file (str): path to index file. (pickle file of dict[str, ndarray] {"train": ndarray, "val": ndarray, "test": ndarray})
         batch_size (int): batch size
