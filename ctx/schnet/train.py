@@ -300,45 +300,14 @@ def main(args: argparse.Namespace):
     trainer.fit(model=task, datamodule=datamodule)
 
     # ---------- predict ----------
-    logger.info("Start predicting...")
-    best_model = task.load_from_checkpoint(
-        f"{save_dir}/checkpoint/best.ckpt",
-        map_location="cuda",
-    )
-    best_model.to("cuda")
-
-    logger.info("Train dataset predicting...")
-    y_tr: dict[str, dict[str, float]] = {}
-    for i in range(len(tr_struct)):
-        with torch.no_grad():
-            x = tr_dataset[i]
-            idx_m = torch.zeros_like(x[spk.properties.Z])
-            x[spk.properties.idx_m] = idx_m
-            x = {k: v.to("cuda") for k, v in x.items()}
-            out = best_model(x)
-            y_pred = out[property_name].detach().cpu().item()
-        y_true = tr_target[i]
-        y_tr[tr_key[i]] = {"y_pred": y_pred, "y_true": y_true}
-    with open(save_dir + "/y_tr.pkl", "wb") as f:
-        pickle.dump(y_tr, f)
-
-    logger.info("Val dataset predicting...")
-    y_val: dict[str, dict[str, float]] = {}
-    for i in range(len(val_struct)):
-        with torch.no_grad():
-            x = val_dataset[i]
-            idx_m = torch.zeros_like(x[spk.properties.Z])
-            x[spk.properties.idx_m] = idx_m
-            x = {k: v.to("cuda") for k, v in x.items()}
-            out = best_model(x)
-            y_pred = out[property_name].detach().cpu().item()
-        y_true = val_target[i]
-        y_val[val_key[i]] = {"y_pred": y_pred, "y_true": y_true}
-    with open(save_dir + "/y_val.pkl", "wb") as f:
-        pickle.dump(y_val, f)
-
     if test_struct is not None:
-        logger.info("Test dataset predicting...")
+        logger.info("Start predicting...")
+        best_model = task.load_from_checkpoint(
+            f"{save_dir}/checkpoint/best.ckpt",
+            map_location="cuda",
+        )
+        best_model.to("cuda")
+
         y_test: dict[str, dict[str, float]] = {}
         for i in range(len(test_struct)):
             with torch.no_grad():
