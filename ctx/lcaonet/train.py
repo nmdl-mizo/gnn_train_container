@@ -224,7 +224,7 @@ def main(args: argparse.Namespace):
         project=args.wandb_pjname,
         name=args.wandb_jobname,
     )
-    wandb_logger.experiment.config["args"] = args
+    wandb_logger.experiment.config.update(args)
     trainer = pl.Trainer(
         max_epochs=args.max_epochs,
         callbacks=[
