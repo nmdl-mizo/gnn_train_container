@@ -275,6 +275,11 @@ def main(args: argparse.Namespace):
         scheduler_monitor=monitor,
     )
     # trainer
+    wandb_logger = WandbLogger(
+        project=args.wandb_pjname,
+        name=args.wandb_jobname,
+    )
+    wandb_logger.experiment.config["args"] = args
     trainer = pl.Trainer(
         max_epochs=args.max_epochs,
         callbacks=[
@@ -284,10 +289,7 @@ def main(args: argparse.Namespace):
         ],
         logger=[
             CSVLogger(save_dir, name="log"),
-            WandbLogger(
-                project=args.wandb_pjname,
-                name=args.wandb_jobname,
-            ),
+            wandb_logger,
         ],
         accelerator="gpu",
     )
