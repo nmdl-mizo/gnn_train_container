@@ -257,7 +257,7 @@ def main(args: argparse.Namespace):
         project=args.wandb_pjname,
         name=args.wandb_jobname,
     )
-    wandb_logger.experiment.config["args"] = args
+    wandb_logger.experiment.config.update(args)
     monitor = f"val_{property_name}_mae"
     trainer = pl.Trainer(
         max_epochs=args.max_epochs,
