@@ -218,6 +218,9 @@ def main(args: argparse.Namespace):
         factor=args.scheduler_factor,
         min_lr=args.scheduler_min_lr,
     )
+    logger.info("MODEL:")
+    logger.info(model_module.model)
+
     # trainer
     monitor = f"val_{property_name}_mae"
     wandb_logger = WandbLogger(
