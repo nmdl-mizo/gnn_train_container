@@ -11,7 +11,7 @@ RUN pip install -U pip && pip install \
     scipy==1.* \
     pytorch-lightning==2.* \
     wandb \
-    torch_geometric \
+    torch_geometric==2.3.1 \
     pyglib torch_scatter torch_sparse torch_cluster torch_spline_conv -f https://data.pyg.org/whl/torch-2.0.0+cu117.html
 
 
