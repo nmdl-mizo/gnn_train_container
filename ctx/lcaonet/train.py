@@ -195,7 +195,7 @@ def main(args: argparse.Namespace):
         out_dim=1,
         n_interaction=args.n_interaction,
         n_per_orb=args.n_per_orb,
-        cutoff=None,
+        cutoff=args.cutoff,
         rbf_type=args.rbf_type,
         cutoff_net=args.cutoff_net,
         max_z=max_z,
