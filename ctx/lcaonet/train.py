@@ -133,6 +133,7 @@ class ModelModule(pl.LightningModule):
 def main(args: argparse.Namespace):
     save_dir = args.save_dir
     property_name = args.property_name
+    pl.seed_everything(42)
 
     # ---------- log info ----------
     logger.info("Start training LCAONet...")
