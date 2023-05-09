@@ -118,7 +118,7 @@ def main(args: argparse.Namespace):
     if args.add_mean and args.divide_by_n_atoms:
         n_atoms = torch.tensor([len(at) for at in tr_struct])
         mean = (torch.tensor(tr_target) / n_atoms).mean()
-    if args.add_mean and not args.divide_by_n_atoms:
+    elif args.add_mean and not args.divide_by_n_atoms:
         mean = torch.tensor(tr_target).mean()
     else:
         mean = None
