@@ -200,6 +200,7 @@ def main(args: argparse.Namespace):
         rbf_type=args.rbf_type,
         cutoff_net=args.cutoff_net,
         max_z=max_z,
+        min_orb=args.min_orb,
         max_orb=args.max_orb,
         elec_to_node=args.elec_to_node,
         add_valence=args.add_valence,
