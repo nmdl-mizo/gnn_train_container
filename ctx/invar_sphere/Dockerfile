@@ -1,4 +1,4 @@
-FROM  pytorch/pytorch:2.0.0-cuda11.7-cudnn8-runtime
+FROM  pytorch/pytorch:2.1.0-cuda12.1-cudnn8-runtime
 
 COPY . /app
 
@@ -21,7 +21,7 @@ RUN pip install -U pip && pip install \
     wandb \
     torch_geometric==2.3.1 \
     lmdb \
-    pyglib torch_scatter torch_sparse torch_cluster torch_spline_conv -f https://data.pyg.org/whl/torch-2.0.0+cu117.html \
+    pyglib torch_scatter torch_sparse torch_cluster torch_spline_conv -f https://data.pyg.org/whl/torch-2.1.0+cu121.html \
     git+https://${GIT_USER}:${GIT_TOKEN}@github.com/ken2403/invar_spherenet.git \
     && rm -rf /root/.cache/pip
 
