@@ -19,7 +19,7 @@ RUN pip install -U pip && pip install \
     scipy==1.* \
     pytorch-lightning==2.* \
     wandb \
-    torch_geometric==2.3.1 \
+    torch_geometric \
     lmdb \
     pyglib torch_scatter torch_sparse torch_cluster torch_spline_conv -f https://data.pyg.org/whl/torch-2.1.0+cu121.html \
     git+https://${GIT_USER}:${GIT_TOKEN}@github.com/ken2403/invar_spherenet.git \
