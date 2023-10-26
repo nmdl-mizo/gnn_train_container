@@ -10,6 +10,7 @@ venv/
 atoms_list.p
 prop_dict.p
 keys_list.p
+idx*.p
 
 # schnetpack
 *.db
