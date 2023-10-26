@@ -136,13 +136,11 @@ class ModelModule(pl.LightningModule):
 
 def main(args: argparse.Namespace):
     save_dir = args.save_dir
-    property_name = args.property_name
     pl.seed_everything(42)
 
     # ---------- log info ----------
     logger.info("Start training InvarSphereNet...")
     logger.info(f"Version: {invarsphere.__version__}")
-    logger.info(f"property: {property_name}")
     logger.info(f"args: {args}")
 
     # ---------- make dataset ----------
@@ -203,7 +201,6 @@ def main(args: argparse.Namespace):
     )
     model_module = ModelModule(
         model=model,
-        property_name=property_name,
         batch=args.batch_size,
         rho=args.rho,
         lr=args.lr,
@@ -243,15 +240,13 @@ def main(args: argparse.Namespace):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("arg_file", type=str, default="./results/perovskite/lcaonet/idx0/args.json")
+    parser.add_argument("arg_file", type=str, default="./results/oc20_invarsphere/args.json")
     cli_args = parser.parse_args()
     args = json2args(cli_args.arg_file)
     """
     Args:
         save_dir (str): path to save directory
-        property_name (str): property name
         dataset_dir (str): path to dataset directory. (contains three pickle file of `atoms_list.p`, `prop_dict.p`, `keys_list.p`)
-        idx_file (str): path to index file. (pickle file of dict[str, ndarray] {"train": ndarray, "val": ndarray, "test": ndarray})
         batch_size (int): batch size
         num_workers (int): number of workers
         emb_size_atom (int): embedding size of atom
