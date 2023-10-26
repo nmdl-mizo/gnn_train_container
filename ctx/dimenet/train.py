@@ -101,20 +101,20 @@ class ModelModule(pl.LightningModule):
 
     # MSE
     def mse(self, pred, true):
-        l = torch.nn.MSELoss()
-        return l(pred, true)
+        loss = torch.nn.MSELoss()
+        return loss(pred, true)
 
     # MAE
     def mae(self, pred, true):
-        l = torch.nn.L1Loss()
-        return l(pred, true)
+        loss = torch.nn.L1Loss()
+        return loss(pred, true)
 
     def training_step(self, batch, batch_idx):
         self.log("train_batch_size", float(self.batch), on_step=True, on_epoch=False, logger=False)
 
         pred = self(batch)
         mse_loss = self.mse(pred.squeeze(-1), batch[self.property_name].squeeze(-1))
-        self.log(f"train_loss", mse_loss, on_step=True, on_epoch=False, prog_bar=True, logger=True)
+        self.log("train_loss", mse_loss, on_step=True, on_epoch=False, prog_bar=True, logger=True)
 
         return mse_loss
 
@@ -123,10 +123,10 @@ class ModelModule(pl.LightningModule):
 
         pred = self(batch)
         mse_loss = self.mse(pred.squeeze(-1), batch[self.property_name].squeeze(-1))
-        self.log(f"val_loss", mse_loss, on_step=False, on_epoch=True, prog_bar=False, logger=True)
+        self.log("val_loss", mse_loss, on_step=False, on_epoch=True, prog_bar=False, logger=True)
 
         mae_loss = self.mae(pred.squeeze(-1), batch[self.property_name].squeeze(-1))
-        self.log(f"val_{self.property_name}_mae", mae_loss, on_step=False, on_epoch=True, prog_bar=True, logger=True)
+        self.log("val_{self.property_name}_mae", mae_loss, on_step=False, on_epoch=True, prog_bar=True, logger=True)
 
         return mae_loss
 
