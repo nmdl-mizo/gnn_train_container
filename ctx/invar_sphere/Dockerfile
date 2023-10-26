@@ -17,7 +17,7 @@ RUN pip install -U pip && pip install \
     numpy==1.* \
     sympy==1.* \
     scipy==1.* \
-    pytorch-lightning==2.* \
+    pytorch-lightning \
     wandb \
     torch_geometric \
     lmdb \
