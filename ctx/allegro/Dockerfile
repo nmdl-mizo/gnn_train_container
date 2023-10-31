@@ -4,6 +4,8 @@ COPY . /app
 
 WORKDIR /app
 
+ARG WANDB_API_KEY
+
 RUN apt-get update && apt-get install -y \
     git \
     && rm -rf /var/lib/apt/lists/*
@@ -13,6 +15,8 @@ RUN git clone --depth 1 https://github.com/mir-group/allegro.git && \
     pip install -U pip && pip install . && \
     pip install wandb
 
-ENV WANDB_API_KEY="16c37057ddfcefe79a976f4a4b9c5d4ef489fabe"
+ENV WANDB_API_KEY=$WANDB_API_KEY
 
-ENTRYPOINT [ "nequip-train", "hyp.yaml" ]
+# add hyp.yaml as a subcommand.
+# example: nequip-train hyp.yaml
+ENTRYPOINT [ "nequip-train" ]
