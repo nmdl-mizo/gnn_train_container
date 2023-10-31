@@ -29,3 +29,14 @@ inspect:
 	--mount type=bind,source="$(shell pwd)"/results,target=/app/results \
 	--entrypoint bash \
 	$(MODEL) \
+
+inspect-root:
+	docker run --rm -it \
+	--env-file .env \
+	--runtime nvidia \
+	--shm-size=1g \
+	--mount type=bind,source="$(shell pwd)"/data,target=/app/data \
+	--mount type=bind,source="$(shell pwd)"/common,target=/app/common \
+	--mount type=bind,source="$(shell pwd)"/results,target=/app/results \
+	--entrypoint bash \
+	$(MODEL) \
