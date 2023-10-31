@@ -10,7 +10,6 @@ build-git:
 
 train:
 	docker run --rm \
-	-u $(shell id -u):$(shell id -g) \
 	--env-file .env \
 	--runtime nvidia \
 	--shm-size=16g \
