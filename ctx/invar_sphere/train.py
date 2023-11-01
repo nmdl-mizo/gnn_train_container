@@ -179,9 +179,8 @@ class ModelModule(pl.LightningModule):
         model,
         batch: int = 64,
         lr: float = 1e-3,
-        patience: int = 10,
-        factor: float = 0.8,
-        min_lr: float = 1e-6,
+        step_size: int = 10,
+        gamma: float = 0.8,
         rho: float = 0.999,
     ):
         super().__init__()
@@ -192,9 +191,8 @@ class ModelModule(pl.LightningModule):
 
         self.batch = batch
         self.lr = lr
-        self.patience = patience
-        self.factor = factor
-        self.min_lr = min_lr
+        self.step_size = step_size
+        self.gamma = gamma
         self.rho = rho
 
         self.mse = torch.nn.MSELoss()
@@ -236,11 +234,10 @@ class ModelModule(pl.LightningModule):
 
     def configure_optimizers(self):
         opt = torch.optim.Adam(self.parameters(), lr=self.lr)
-        sche = torch.optim.lr_scheduler.ReduceLROnPlateau(
+        sche = torch.optim.lr_scheduler.StepLR(
             opt,
-            patience=self.patience,
-            factor=self.factor,
-            min_lr=self.min_lr,
+            step_size=self.step_size,
+            gamma=self.gamma,
         )
 
         return {
@@ -317,9 +314,8 @@ def main(args: argparse.Namespace):
         batch=args.batch_size,
         rho=args.rho,
         lr=args.lr,
-        patience=args.scheduler_patience,
-        factor=args.scheduler_factor,
-        min_lr=args.scheduler_min_lr,
+        step_size=args.scheduler_step_size,
+        gamma=args.scheduler_gamma,
     )
     logger.info("MODEL:")
     logger.info(model_module.model)
@@ -387,9 +383,8 @@ if __name__ == "__main__":
         align_initial_weight (bool): whether to align initial weight
         rho (float): rho of loss function
         lr (float): learning rate
-        scheduler_factor (float): factor of scheduler
-        scheduler_patience (int): patience of scheduler
-        scheduler_min_lr (float): minimum learning rate of scheduler
+        scheduler_step_size (int): step size of scheduler
+        scheduler_gamma (float): gamma of scheduler
         max_epochs (int): number of max epochs
         early_stopping_patience (int): patience of early stopping
         wandb_pjname (str): wandb project name
